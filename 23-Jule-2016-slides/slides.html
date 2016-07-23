@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Go и мобильная разработка</title>
+    <meta charset="utf-8">
+    <style>
+      @import url(css/pt-sans.css);
+      /*@import url(https://fonts.googleapis.com/css?family=PT+Sans:400,700,400italic);*/
+      @import url(css/ubuntu-mono.css);
+
+      body { font-family: 'PT Sans'; }
+      h1, h2, h3 {
+        font-family: 'PT Sans';
+        font-weight: normal;
+      }
+      .remark-code, .remark-inline-code { font-family: 'Ubuntu Mono'; }
+      .footnote {
+        position: absolute;
+        bottom: 3em;
+      }
+      .red { color: #fa0000; }
+    </style>
+  </head>
+  <body>
+    <textarea id="source">
+
+class: center, middle
+
+# Go и мобильная разработка
+
+---
+
+# Компании
+
+--
+- ### Apple
+
+--
+- ### Google
+
+--
+- ### Microsoft
+
+--
+
+.footnote[Кто еще помнит про Nokia? А что с Blackberry?]
+---
+# Статистика (Statista)
+![:scale 87%](images/market_share_1.jpg)
+---
+# Статистика (Business Insider)
+![:scale 87%](images/market_share_3.png)
+---
+# Статистика (NetMarketShare)
+![:scale 100%](images/market_share_2.jpg)
+---
+# ОС и экосистема
+- ### Apple 
+--
+ - iOS
+--
+ - Objective-C
+--
+ ( Swift )
+--
+
+- ### Google 
+--
+ - Android
+--
+ - Java
+--
+ ( Kotlin? )
+---
+# Кроссплатформенные языки для мобильной разработки
+- ##C
+- ##C++
+--
+
+.footnote[А также Python, C#, JavaScript и другие.]
+---
+# Преимущества C и С++ для мобильной разработки
+--
+
+- Переносимость. 
+--
+
+
+  [Dropbox Djinni](https://github.com/dropbox/djinni)
+![:scale 100%](images/djinni.png)
+
+--
+- Производительность.
+
+--
+- Ручное управление памятью.
+
+--
+- Большое число доступных библиотек.
+---
+# Недостатки
+
+--
+- Ошибки связанные с ручным управлением памятью.
+--
+![:scale 80%](images/exception.jpg)
+
+--
+- Сложности при сборке на целевую платформу. (make, cmake, qmake, gradle...)
+
+--
+- Ограниченные возможности доступа к API целевой платформы. (виджеты)
+---
+# Go
+- Компилируемый, многопоточный язык программирования .red[*]
+- Создан компанией Google .red[*]
+- Проектированием занимались Роберт Гризмер, Роб Пайк и Кен Томпсон .red[*]
+- Первая стабильная версия в 2012 году .red[*]
+- Встроенная сборка мусора .red[*]
+.center[![:scale 39%](images/gopher.png)]
+
+.footnote[.red[*] Спасибо Wikipedia!]
+
+---
+# Go mobile
+- Основные контрибьюторы: David Crawshaw, Hana Kim, Burcu Dogan, Elias Naur
+- Работа начата в Go 1.4
+- Первый релиз вместе с [Go 1.5](https://talks.golang.org/2015/gophercon-go-on-mobile.slide)
+- Поддержка iOS и Android
+- Поддержка ARMv7, ARM64, x86 и x64 .red[*]
+
+![:scale 50%](images/caution.png)
+
+.footnote[.red[*] ARMv7 начиная с Go 1.5. ARM64, x86 и x64 с Go 1.6]
+---
+# Установка
+Два этапа:
+- Установка [gomobile](https://golang.org/x/mobile/cmd/gomobile):
+```bash
+$ go get golang.org/x/mobile/cmd/gomobile
+```
+- Установка [android compiler toolchain](https://developer.android.com/ndk/index.html):
+```bash
+$ gomobile init
+```
+        Займет несколько минут в зависимости от скорости интернета.
+--
+В случае проблем расширенный вывод включается с помощью флагов `-x -v`
+```bash
+$ gomobile init -x -v
+```
+---
+# Использование
+- В режиме нативного приложения:
+```11111
+$ gomobile build [-target android|ios] [-o output] [build flags] [package]
+```
+        Подходит приложениям которым не нужно высокоуровневое API платформы
+- В режиме библиотеки: .red[*]
+```11111
+$ gomobile bind [-target android|ios] [-o output] [build flags] [package]
+```
+.footnote[.red[*] Для сборки с помощью gradle доступен плагин [gobind](https://plugins.gradle.org/plugin/org.golang.mobile.bind).]
+---
+# Правила экспорта символов
+- Все экспортированные типы, функции, переменные, константы и методы пакета доступны основной программе на Java/Obj-C:
+  ```go
+  // ExportedFunc доступна из кода на Java/Obj-C
+  func ExportedFunc() int { return 42 }
+
+  // unexportedFunc доступна только в локальном пакете
+  func unexportedFunc() int { return 43 }
+  ```
+- Экспортированные символы могут быть следующих типов:
+  ```go
+  - Знаковые целочисленные типы и типы с плавающей точкой.
+  - Строки и логический тип.
+  - []byte
+  - Любые интерфейсные типы, все методы которых принимают или
+  отдают поддерживаемые типы.
+  - Любые структурные типы, экспортируемые методы и
+  поля которых имеют поддерживаемые типы.
+  ```
+- В будущем хотят увеличить число поддерживаемых типов.
+---
+# Правила экспорта (пример)
+- Корректно:
+  ```go
+  // Все экспортированые типы поддерживаются
+  type MyStruct {
+        ExportedInt int
+  }
+  ```
+- Некорректно:
+  ```go
+  // Каналы не поддерживаются
+  type MyStruct {
+        ExportedChan chan int
+  }
+  ```
+- Корректно:
+  ```go
+  // Каналы не поддерживаются, но не экспортированы
+  type MyStruct {
+        ExportedInt    int
+        unexportedChan chan int
+  }
+  ```
+---
+# Рекомендации по экспорту
+- Избегайте пересечением исключением или паникой кросс-языковых барьеров. Такая ситуация приведет к завершению программы.
+- Возврат `(variable Type, err error)` в случае `err != nil` бросит исключение в вызвавшем коде Java.
+- Все типы кроме примитивных и интерфейсов лучше принимать и передавать по указателю.
+- Тоже самое относится к method recievers.
+- Избегайте циклических зависимостей межу кросс-языковыми объектами. В случае если такие есть, один из них явно должен разорвать связь. Иначе обе стороны никогда не будут собраны сборщиком мусора.
+---
+# Впечатления
+Позитивные:
+- Горутины позволяют позволяют порождать множество потоков без перерасхода памяти.
+--
+
+- Каналы позволяют организовать легкий обмен данными между этими потоками без использования механизма обратного вызова или общих данных.
+--
+
+
+Вместе эти механизмы позволяют неблокирующую и в то-же время легко понятную архитектуру.
+--
+
+
+Негативные:
+- Увеличивается время компиляции. (`cgo` wrapper...)
+--
+
+- Существенно увеличивается размер результирующего `apk` файла.
+--
+
+- Отладчик `Delve` пока не доступен.
+---
+# Впечатления (продолжение)
+- `select` становится ядром логики:
+  ```go
+  for {
+      ...
+      select {
+        case uiMsg := <-uiChan:
+          handleUI(uiMsg)
+        case event := <-eventChan:
+          handleEvent(event)
+        ...
+        case <-ctx.Done():
+          return
+      }
+  }
+  ```
+--
+- Доступна вся экосистема Go - вебсервер, роутеры, логгеры, базы данных, криптография и другое.
+
+--
+- Когда становится мало экосистемы Go вступает `import "C"`.
+
+--
+- Интерфейсы для обмена пишутся на Go, а реализуются в конечном языке.
+
+--
+- Юнит-тесты не зависят от конечной платформы.
+
+--
+- Практически нулевые затраты на сборку мусора.
+---
+# Сбор статистики
+- Добавляем в проект пакет `expvar`:
+  ```go
+  import _ "expvar"
+  ```
+- Регистрируем нужные переменные и запускаем встроенный веб сервер.
+- Просматриваем статистику любым удобным способом.
+![:scale 75%](images/memstatsday.png)
+
+---
+# Профилирование
+- Добавляем в проект пакет `net/http/pprof`:
+  ```go
+  import _ "net/http/pprof"
+  ```
+- Запускаем встроенный веб сервер.
+  ```go
+  go func() {
+        log.Println(http.ListenAndServe(":6060", nil))
+  }()
+  ```
+- Подсоединяемся с использованием `pprof`:
+  ```11111
+  go tool pprof http://10.10.80.117:6060/debug/pprof/profile
+  ```
+
+--
+- Получаем reject от сервера...
+---
+# Профилирование (2)
+- Убеждаемся в том, что вебсервер работоспособен.
+
+--
+- Идем на [golang.org](https://golang.org) и читаем документацию. .red[*]
+
+--
+- Убеждаемся в том, что все делаем правильно. Поднимаем [issues/14158](https://github.com/golang/go/issues/14158).
+![:scale 80%](images/issue.png)
+
+--
+- Получаем редирект на [issues/14043](https://github.com/golang/go/issues/14043) и fix к нему с затейливым объяснением:
+  >When using c-archive/c-shared, the signal handler for SIGPROF will not
+  be installed, which means that runtime/pprof.StartCPUProfile won't work.
+  For now, just document that runtime/pprof doesn't
+  work as expected, but that it will work if you use Notify to install the
+  Go signal handler.
+
+.footnote[.red[*] Исправлено в документации Go 1.6]
+---
+# Профилирование (3)
+Используя полученные знания вносим нужные правки в исходный код.
+- Добавляем в импорты `os`, `os/signal` и `syscall`:
+  ```go
+  import (
+        ...
+        "os"
+        "os/signal"
+        "syscall"
+        ...
+  )
+  ```
+- Добавляем в код регистрацию `SIGPROF`:
+  ```go
+   sigChan := make(chan os.Signal, 1)
+   signal.Notify(sigChan, syscall.SIGPROF)
+  ```
+- Пробуем снова подключится с помощью `go tool pprof`.
+---
+class: center
+
+# Профилирование (результат)
+![:scale 100%](images/profiling.png)
+--
+.middle[##Работает!]
+---
+# Особенности работы профилировщика.
+- Доступна информация по `/default` `/heap` и `/blocking`
+- `list` и `weblist` недоступны, так как нет результирующего исполняемого файла. (распаковка *.so из apk не работает)
+- Однако `top`, `web` и другие инструменты, не привязанные к конкретной строчек, по прежнему доступны.
+---
+# Итоги
+Go плохо подходит когда необходимый функционал приложения покрывает сама платформа или ее экосистема.
+
+
+--
+Go хорошо подходит когда нужен дополнительный функционал или для кроссплатформенной разработки.
+
+
+--
+Компилятор Go генерирует быстрый код, а затраты на сборщик мусора невелики.
+
+
+--
+Два языка тяжелее чем один.
+
+
+--
+У Go отличный тулинг!
+---
+class: left, bottom
+
+.center[![:scale 39%](images/up.png)]
+
+___ Дмитрий \ ___ Dmitriy ([@DmitriyMV](https://github.com/DmitriyMV))
+
+Июль 2016
+    </textarea>
+    <script src="remark.min.js">
+    </script>
+    <script>
+      remark.macros.scale = function (percentage) {
+        var url = this;
+        return '<img src="' + url + '" style="width: ' + percentage + '" />';
+      };
+      var slideshow = remark.create({
+        countIncrementalSlides: false
+      });
+    </script>
+  </body>
+</html>
