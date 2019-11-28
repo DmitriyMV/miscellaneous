@@ -54,7 +54,7 @@ Senior Go Developer, TradingView
 * Low-cost defers via inline code
 
 - Defers allow us close resources cleanly
-- but they wre not free...
+- but they are not free...
 - Around 30 ns at Go 1.13
 - Around 1 ns at Go 1.14 (happy path)
 - defers inside for/if statements are *not* *inlined*
