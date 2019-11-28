@@ -1,0 +1,7 @@
+Go 1.14
+What’s coming…
+30 Nov 2019
+Tags: Go1.14, Go, preemptive, logging
+
+Dmitry Matrenichev
+Senior Go Developer, TradingView
